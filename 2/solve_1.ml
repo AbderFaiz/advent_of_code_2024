@@ -10,23 +10,24 @@ let rec construct_list l1=
               construct_list (report::l1)
 ;;
 
-let rec is_safe status l = match status with
+let monotony a b = if ((abs (a - b)) < 4) then 
+  (if (a < b) then "increasing" else 
+  (if (a > b) then "decreasing" else "ko"))
+else "ko"
+;;
+
+
+let rec is_safe status l =  match status with
 | "ko"         -> false
 | "increasing" -> (match l with
-                              | a :: b :: tl -> if ( (a < b) && ((abs (a - b)) < 4)) then (is_safe "increasing" (b::tl)) else (is_safe "ko" [])
-                              | _ :: [] | [] -> is_safe "ok" [])
+          | a :: b :: tl -> if ((monotony a b) == "increasing") then (is_safe "increasing" (b::tl)) else (is_safe "ko" [])
+          | _ :: [] | [] -> is_safe "ok" [])
 | "decreasing" -> (match l with
-                              | a :: b :: tl -> if ( (a > b) && ((abs (a - b)) < 4)) then (is_safe "decreasing" (b::tl)) else (is_safe "ko" [])
-                              | _ :: [] | [] -> is_safe "ok" [])
+          | a :: b :: tl -> if ((monotony a b) == "decreasing") then (is_safe "decreasing" (b::tl)) else (is_safe "ko" [])
+          | _ :: [] | [] -> is_safe "ok" [])
 | "init"       -> (match l with
-                              | a :: b :: tl -> if ((abs (a - b)) < 4) then 
-                                                 (if (a < b) then (is_safe "increasing" (b::tl)) 
-                                                  else 
-                                                    (if (a == b) then (is_safe "ko" [])
-                                                     else (is_safe "decreasing" (b::tl)))) 
-                                                else 
-                                                  (is_safe "ko" []) 
-                              | _ :: [] | [] -> is_safe "ok" [])
+          | a :: b :: tl -> is_safe (monotony a b) (b::tl)
+          | _ :: [] | [] -> is_safe "ok" [])
 | _            -> true (*any other value is considered ok*)
 ;;
 
