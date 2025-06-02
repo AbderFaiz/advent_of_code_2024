@@ -17,22 +17,26 @@ else "ko"
 ;;
 
 
-let rec is_safe status l =  match status with
-| "ko"         -> false
+let rec is_safe status tolerance l = 
+(Printf.printf "%s %d\n" status tolerance); 
+if (tolerance < 0) then false else 
+(match status with
+| "ko"         -> is_safe "init" (tolerance - 1) l
 | "increasing" -> (match l with
-          | a :: b :: tl -> if ((monotony a b) == "increasing") then (is_safe "increasing" (b::tl)) else (is_safe "ko" [])
+          | a :: b :: tl -> if ((monotony a b) == "increasing") then (is_safe "increasing" tolerance (b::tl)) else (is_safe "increasing" (tolerance-1) (b::tl))
           | _ :: [] | [] -> true)
 | "decreasing" -> (match l with
-          | a :: b :: tl -> if ((monotony a b) == "decreasing") then (is_safe "decreasing" (b::tl)) else (is_safe "ko" [])
+          | a :: b :: tl -> if ((monotony a b) == "decreasing") then (is_safe  "decreasing" tolerance (b::tl)) else (is_safe  "decreasing" (tolerance-1) (b::tl))
           | _ :: [] | [] -> true)
 | "init"       -> (match l with
-          | a :: b :: tl -> is_safe (monotony a b) (b::tl)
+          | a :: b :: tl -> is_safe (monotony a b) tolerance (b::tl)
           | _ :: [] | [] -> true)
-| _            -> true (*any other value is considered ok*)
-;;
+| _            -> true )
+;; 
+
 
 let rec solve accum = function
-  | hd :: tl -> if (is_safe "init" hd) then solve (accum + 1) tl else solve accum tl
+  | hd :: tl -> (Printf.printf "%d\n" (List.hd hd)); if (is_safe "init" 1 hd) then solve (accum + 1) tl else solve accum tl
   | [] -> accum
 ;;
 
