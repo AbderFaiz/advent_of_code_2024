@@ -17,26 +17,39 @@ else "ko"
 ;;
 
 
-let rec is_safe status tolerance l = 
-(Printf.printf "%s %d\n" status tolerance); 
+let rec is_safe status tolerance prev_element l = 
 if (tolerance < 0) then false else 
 (match status with
-| "ko"         -> is_safe "init" (tolerance - 1) l
+| "ko"         -> (match l with
+                  | a :: b :: tl -> (is_safe (monotony prev_element a) (tolerance - 1) 0 (prev_element::b::tl)) ||
+                                    (is_safe (monotony a b) (tolerance - 1) 0 (b::tl))
+                  | _ :: [] | [] -> true)
 | "increasing" -> (match l with
-          | a :: b :: tl -> if ((monotony a b) == "increasing") then (is_safe "increasing" tolerance (b::tl)) else (is_safe "increasing" (tolerance-1) (b::tl))
+          | a :: b :: tl -> (if ((monotony a b) == "increasing") then (is_safe "increasing" tolerance a (b::tl)) 
+                            else ((is_safe "increasing" (tolerance-1) 0 (prev_element::b::tl)) || 
+                                  (is_safe "increasing" (tolerance-1) 0 (a::tl))))
           | _ :: [] | [] -> true)
 | "decreasing" -> (match l with
-          | a :: b :: tl -> if ((monotony a b) == "decreasing") then (is_safe  "decreasing" tolerance (b::tl)) else (is_safe  "decreasing" (tolerance-1) (b::tl))
+          | a :: b :: tl -> (if ((monotony a b) == "decreasing") then (is_safe  "decreasing" tolerance a (b::tl))
+                            else ((is_safe "decreasing" (tolerance-1) 0 (prev_element::b::tl)) || 
+                                  (is_safe "decreasing" (tolerance-1) 0 (a::tl))))
           | _ :: [] | [] -> true)
-| "init"       -> (match l with
-          | a :: b :: tl -> is_safe (monotony a b) tolerance (b::tl)
-          | _ :: [] | [] -> true)
+| "confirm_monotony"       -> (match l with
+                                | a :: b :: tl -> let initial_monotonity = (monotony prev_element a) in 
+                                                  let current_monotonity = (monotony a b) in 
+                                                  let is_foul = (if initial_monotonity == current_monotonity then 0 else 1) in
+                                                  (is_safe current_monotonity (tolerance - is_foul) a (a::tl)) ||
+                                                  (is_safe initial_monotonity (tolerance - is_foul) a (prev_element::b::tl))
+                                | _ :: [] | [] -> true)
+| "init" -> (match l with
+            | a :: b :: tl -> is_safe (if ((a == b) || (abs(a - b) >= 4)) then "ko" else "confirm_monotony") tolerance a (b::tl)
+            | _ :: [] | [] -> true)
 | _            -> true )
 ;; 
 
 
 let rec solve accum = function
-  | hd :: tl -> (Printf.printf "%d\n" (List.hd hd)); if (is_safe "init" 1 hd) then solve (accum + 1) tl else solve accum tl
+  | hd :: tl -> if (is_safe "init" 1 0 hd) then solve (accum + 1) tl else solve accum tl
   | [] -> accum
 ;;
 
