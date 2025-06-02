@@ -12,7 +12,7 @@ let parse_mult_instruction line=
     with Not_found -> accum
   in
     aux 0 0
-  ;;
+;;
 let rec solve accum =
   let line = In_channel.input_line In_channel.stdin in
   match line with
