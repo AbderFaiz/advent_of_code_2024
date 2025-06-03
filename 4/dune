@@ -1,0 +1,3 @@
+(executables
+ (names  solve_1 solve_2)
+ (libraries base stdio str))
