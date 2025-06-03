@@ -11,7 +11,7 @@ Each day's folder is named after the day number (`1` to `25`). Inside each folde
 
 - `solve_1.ml` – solution to **Part 1**
 - `solve_2.ml` – solution to **Part 2**
-- `input` – the raw input file for that day (change it to your own input if you want)
+- `input` – create it with your input (AOC's author [Eric Wastl](https://was.tl/) suggests not publishing puzzle inputs)
 - `dune` – Dune file to build the solutions
 
 
@@ -26,7 +26,7 @@ Then:
 ```bash
   dune build
 ```
-To execute code on the solution of day 1 Part 1 launch this command 
+To execute solution
 
 ```bash
   (cat <day_number>/input | dune exec ./<day_number>/solve_<part_number>.exe)
