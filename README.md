@@ -46,7 +46,7 @@ replace `<part_number>` with 1 for Part 1 or 2 for Part 2
 | 2   | ✅     | ✅     |
 | 3   | ✅     | ✅     |
 | 4   | ✅     | ✅     |
-| 5   | ⬜     | ⬜     |
+| 5   | ✅     | ⬜     |
 | 6   | ⬜     | ⬜     |
 | 7   | ⬜     | ⬜     |
 | 8   | ⬜     | ⬜     |
