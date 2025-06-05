@@ -23,8 +23,10 @@ let rec run_guard pos direction l_pos =
   | 'v' -> let new_pos = (pos + nb_columns) in
            if (new_pos < (nb_rows*nb_columns) && input.[new_pos] == '#') then run_guard pos '<' l_pos  else run_guard new_pos 'v' (new_pos::l_pos)
   | '<' -> let new_pos = (pos - 1) in
+           if (new_pos mod nb_columns == nb_columns -1) then (List.tl l_pos) else
            if (new_pos >= 0 && input.[new_pos] == '#') then run_guard pos '^' l_pos else run_guard new_pos '<' (new_pos::l_pos)
   | '>' -> let new_pos = (pos + 1) in
+           if (new_pos mod nb_columns == 0) then (List.tl l_pos) else 
            if (new_pos < (nb_rows*nb_columns) && input.[new_pos] == '#') then run_guard pos 'v' l_pos else run_guard new_pos '>' (new_pos::l_pos)
   | _ -> [] (*Not supposed to happen*)
 
