@@ -59,7 +59,7 @@ let place_antinode_down delta_x delta_y pos =
 ;;
 
 let get_antennas =
-    let rec aux pos accum=
+  let rec aux pos accum =
     try
       let pos_antenna = search_forward (regexp {|[^.]|}) input pos in
       aux (pos_antenna + 1) (CharSet.add input.[pos_antenna] accum) 
@@ -86,12 +86,13 @@ let create_antinodes antenna fixed_antenna_pos =
       let x_diff, y_diff = (distance fixed_antenna_pos pos_antenna2) in
       let anti_node1 = (place_antinode_up x_diff y_diff fixed_antenna_pos) in
       let anti_node2 = (place_antinode_down x_diff y_diff pos_antenna2) in
+      let antenna_as_antinode_set = (IntSet.add pos_antenna2 accum) in
       let set_antinode1 = List.fold_left (fun acc p -> IntSet.add p acc) IntSet.empty anti_node1 in
       let set_antinode2 = List.fold_left (fun acc p -> IntSet.add p acc) set_antinode1 anti_node2 in
-      aux (pos_antenna2) (IntSet.union (IntSet.union set_antinode1 set_antinode2) accum)
-    with Not_found -> accum
+      aux (pos_antenna2) (IntSet.union (IntSet.union set_antinode1 set_antinode2) antenna_as_antinode_set)
+    with Not_found -> if ((IntSet.cardinal accum) == 1) then (IntSet.remove fixed_antenna_pos accum) else accum
   in
-  aux fixed_antenna_pos IntSet.empty
+  aux fixed_antenna_pos (IntSet.add fixed_antenna_pos IntSet.empty)
 ;;
 
 let create_all_antinodes antenna =
@@ -108,11 +109,13 @@ let create_all_antinodes antenna =
 let solve =
   let antinodes =
     CharSet.fold (fun c acc -> (IntSet.union (create_all_antinodes c) acc)) get_antennas IntSet.empty in
-  printf "Antinodes : \n";
-  IntSet.iter (fun d -> printf "%d " d) antinodes;
+  (* printf "\n\nAntinodes : \n"; *)
+  (* IntSet.iter (fun d -> printf "%d " d) antinodes; *)
   IntSet.cardinal antinodes
 ;;
 
 let () =
+  (* printf "anitnodes for A\n"; *)
+  (* IntSet.iter (fun p -> printf "%d " p) (create_antinodes 'A' 104); *)
   printf "Total: %d\n" solve;;
 
