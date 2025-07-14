@@ -1,6 +1,4 @@
 open Stdio
-(* open Str *)
-
 
 let input =
   let line = In_channel.input_line In_channel.stdin in
@@ -37,31 +35,41 @@ let reverse_list =
   aux []
 ;;
 
-(* To be continued *)
+
+let get_dm_and_queue =
+  let rec aux acc queue = function
+    | [] -> acc, (reverse_list queue)
+    | -1 :: tl -> aux (-1::acc) queue tl
+    | x :: tl -> aux (x::acc) (x::queue) tl
+  in
+  aux [] []
+;;
+
 let compact dm =
-  let reversed = (reverse_list dm) in
-  reversed 
+  let reversed, queue = (get_dm_and_queue dm) in
+  let len_dm = (List.length queue) in
+  let rec aux acc q l=
+    if (List.length acc == len_dm) then (reverse_list acc) else
+    match l with
+    | [] -> (reverse_list acc)
+    | -1::tl -> aux ((List.hd q)::acc) (List.tl q) tl
+    | x :: tl -> aux (x::acc) q tl
+  in
+  aux [] queue reversed
 ;;
 
 let calculate_checksum dm=
-  let rec aux accum id = function
+  let rec aux id accum = function
     | [] -> accum
-    | x::tl -> (aux (id+1) ((id * x) + accum)) tl
+    | x::tl -> aux (id+1) (id*x + accum) tl
   in
   aux 0 0 dm;;
   
-let solve = 0
-  (* let expanded = expand input in *)
-  (* calculate_checksum *)
-    (* (compact expanded (reverse_compact expanded)); *)
+let solve = 
+  let dm = expand input in
+  calculate_checksum (compact dm);
 ;;
 
 let () =
-  let dm = expand input in
-  List.iter (printf "%d") (dm);
-  printf "\n ----------------- \n";
-  List.iter (printf "%d") (reverse_list dm);
-  (* printf "%s\n" (reverse_compact (expand input)); *)
-  (* printf "%s\n" (compact (expand input) (reverse_compact (expand input))); *)
-  (* printf "Total: %d\n" solve;; *)
+  printf "Total: %d\n" solve;;
 
