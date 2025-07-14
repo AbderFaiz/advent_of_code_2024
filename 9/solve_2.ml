@@ -1,121 +1,131 @@
 open Stdio
-open Str
-module CharSet = Set.Make(Char)
-module IntSet = Set.Make(Int)
 
-let input_info = 
-  let rec one_string inp nb_rows nb_columns = 
-    let line = In_channel.input_line In_channel.stdin in
-    match line with
-    | None -> (inp, (nb_rows, nb_columns))
-    | Some x -> one_string (inp ^ x) (nb_rows + 1) (String.length x)
-  in one_string "" 0 0
+let input =
+  let line = In_channel.input_line In_channel.stdin in
+  match line with
+  | None -> ""
+  | Some x -> x
 ;;
 
-let input = (fst input_info);;
-let nb_rows = (fst (snd input_info));;
-let nb_columns =(snd (snd input_info));;
+type file_block = {
+  id: int;
+  size: int;
+  empty_space : int;
+  can_move: bool;
+  }
 
-let encode_movement direction pos =
-  match direction with
-  | '^' -> let new_pos = pos - nb_columns in
-           if (new_pos < 0) then -1 else new_pos
-  | 'v' -> let new_pos = (pos + nb_columns) in
-           if (new_pos >= (nb_rows*nb_columns)) then -1  else new_pos
-  | '<' -> let new_pos = (pos - 1) in
-           if (new_pos mod nb_columns == nb_columns -1) then -1 else
-             (if (new_pos < 0) then -1 else new_pos)
-  | '>' -> let new_pos = (pos + 1) in
-           if (new_pos mod nb_columns == 0) then -1 else
-             (if (new_pos >= (nb_rows*nb_columns)) then -1 else new_pos)
-  | _ -> -1 (*Not supposed to happen*)
+let rec print_disk_map = function
+  | [] -> ()
+  | x::tl -> (printf "(%d %d %d %b) - " x.id x.size x.empty_space x.can_move; print_disk_map tl)
+
+let expand dm =
+  let rec aux i acc=
+    if (i >= String.length dm) then
+      acc
+    else (if (i == String.length dm -1)
+         then
+           let file_id = (i/2) in
+           let file_size = (int_of_char dm.[i] - int_of_char '0') in
+           let new_block = {id = file_id; size = file_size; empty_space=0; can_move = (file_id != 0)} in
+           new_block :: acc
+         else
+           let file_id = (i/2) in
+           let file_size = (int_of_char dm.[i] - int_of_char '0') in
+           let empty_spc = (int_of_char dm.[i+1] - int_of_char '0') in
+           let new_block = {id = file_id; size = file_size; empty_space=empty_spc; can_move = (file_id != 0)} in
+           aux (i+2) (new_block :: acc))
+  in
+  aux 0 []
 ;;
 
-let rec move_n direction pos n =
-  if (n <= 0 || pos == -1) then pos
-  else (move_n direction (encode_movement direction pos) (n-1))
+let reverse_list = List.rev;;
+
+let fill_empty_space file1 file2 gain_space =
+  let new_ept_space = if (gain_space) then file1.empty_space - file2.size + file2.empty_space
+                      else file1.empty_space - file2.size
+  in
+  let n_file1 = {id = file1.id; size = file1.size; empty_space = 0; can_move=file1.can_move} in
+  let n_file2 = {id = file2.id; size = file2.size; empty_space = new_ept_space; can_move = false} in
+  n_file1::[n_file2]
+;;
+
+let custom_findindex f l =
+  let index = List.find_index f l in
+  match index with
+  | None -> -1
+  | Some i -> i
+;;  
+
+let cant_move f =
+  {id=f.id; size=f.size; empty_space=f.empty_space; can_move=false};;
+
+let add_empty_space i1 i2 lst=
+  if (i1 == i2) then []
+  else
+    let imp_f = List.nth lst i1 in
+    let mov_f = List.nth lst i2 in
+    [{id=imp_f.id;
+      size=imp_f.size;
+      empty_space=imp_f.empty_space+mov_f.size+mov_f.empty_space;
+      can_move=imp_f.can_move}];;
+
+let sublist n j lst =
+  List.take (j - n) (List.drop n lst)
+;;
+
+let compact reversed_dm =
+  let ordered_dm = (reverse_list reversed_dm) in
+  let size_dm = List.length ordered_dm in
+  let rec aux dm =
+    (* printf "\n -------------- \n"; *)
+    (* print_disk_map dm; *)
+    if (List.for_all (fun f -> f.can_move == false) dm) then dm
+    else
+      let reverse_dm = (reverse_list dm) in
+      let cur_file_to_move_index = (size_dm - (custom_findindex (fun f -> f.can_move == true) reverse_dm) - 1) in
+      let cur_file_to_move = (List.nth dm cur_file_to_move_index) in
+      let new_index = (custom_findindex (fun f -> f.empty_space >= cur_file_to_move.size) dm) in
+      let new_dm =
+        (if (new_index == -1 || new_index >= cur_file_to_move_index) then
+          (List.take cur_file_to_move_index dm)@[(cant_move cur_file_to_move)]@(List.drop (cur_file_to_move_index + 1) dm)
+        else
+          let impacted_file = List.nth dm new_index in
+          let is_impacted_file_space =
+            if (cur_file_to_move_index - new_index == 1) then cur_file_to_move_index else (cur_file_to_move_index - 1) in
+          (List.take new_index dm)@
+            (fill_empty_space impacted_file cur_file_to_move (cur_file_to_move_index == new_index + 1))@
+              (sublist (new_index+1) (is_impacted_file_space) dm)@
+                (add_empty_space is_impacted_file_space cur_file_to_move_index dm)@
+                  (List.drop (cur_file_to_move_index+1) dm)
+        )
+          
+          
+      in
+      aux new_dm
+  in
+  aux ordered_dm 
+;;
+
+let calculate_file_block_cs file_block id=
+  let rec aux acc counter=
+    if (counter == file_block.size) then acc
+    else aux (file_block.id*(id+counter) + acc) (counter+1)
+  in
+  aux 0 0
+;;
+
+let calculate_checksum dm=
+  let rec aux id accum =
+    function
+    | [] -> accum
+    | x::tl -> aux (id+x.size+x.empty_space) ((calculate_file_block_cs x id)+accum) tl
+  in
+  aux 0 0 dm;;
   
-
-let place_antinode_up delta_x delta_y pos =
-  let rec aux accum p =
-    let pos_x = if (delta_x > 0) then (move_n '>' p delta_x) else (move_n '<' p (abs delta_x))  in
-    if (pos_x == -1) then accum
-    else
-    (let final_pos = (move_n '^' pos_x delta_y) in
-    if (final_pos == -1) then accum else (aux (final_pos::accum) final_pos))
-  in
-  aux [] pos
-;;
-
-let place_antinode_down delta_x delta_y pos =
-  let rec aux accum p =
-    let pos_x = if (delta_x > 0) then (move_n '<' p delta_x) else (move_n '>' p (abs delta_x))  in
-    if (pos_x == -1) then accum
-    else
-    (let final_pos = (move_n 'v' pos_x delta_y) in
-    if (final_pos == -1) then accum else (aux (final_pos::accum) final_pos))
-  in
-  aux [] pos
-;;
-
-let get_antennas =
-  let rec aux pos accum =
-    try
-      let pos_antenna = search_forward (regexp {|[^.]|}) input pos in
-      aux (pos_antenna + 1) (CharSet.add input.[pos_antenna] accum) 
-    with Not_found -> accum
-  in
-  aux 0 CharSet.empty
-;;
-
-(* Get distance between two antennas
-   requires pos1 < pos2;
-*)
-let distance pos1 pos2 =
-  let y_pos1, x_pos1 = (pos1/nb_columns, pos1 mod nb_columns) in
-  let y_pos2, x_pos2 = (pos2/nb_columns, pos2 mod nb_columns) in
-  let x_diff, y_diff = (x_pos1 - x_pos2), (y_pos2 - y_pos1) in
-  (x_diff, y_diff)
-;;
-
-
-let create_antinodes antenna fixed_antenna_pos =
-  let rec aux pos accum =
-    try
-      let pos_antenna2 = search_forward (regexp (String.make 1 antenna)) input (pos + 1) in
-      let x_diff, y_diff = (distance fixed_antenna_pos pos_antenna2) in
-      let anti_node1 = (place_antinode_up x_diff y_diff fixed_antenna_pos) in
-      let anti_node2 = (place_antinode_down x_diff y_diff pos_antenna2) in
-      let antenna_as_antinode_set = (IntSet.add pos_antenna2 accum) in
-      let set_antinode1 = List.fold_left (fun acc p -> IntSet.add p acc) IntSet.empty anti_node1 in
-      let set_antinode2 = List.fold_left (fun acc p -> IntSet.add p acc) set_antinode1 anti_node2 in
-      aux (pos_antenna2) (IntSet.union (IntSet.union set_antinode1 set_antinode2) antenna_as_antinode_set)
-    with Not_found -> if ((IntSet.cardinal accum) == 1) then (IntSet.remove fixed_antenna_pos accum) else accum
-  in
-  aux fixed_antenna_pos (IntSet.add fixed_antenna_pos IntSet.empty)
-;;
-
-let create_all_antinodes antenna =
-  let rec aux pos accum =
-  try
-    let pos = search_forward (regexp (String.make 1 antenna)) input pos in
-    let set_positions = create_antinodes antenna pos in
-    aux (pos+1) (IntSet.union accum set_positions)
-  with Not_found -> accum
-  in
-  aux 0 IntSet.empty
-;;
-
 let solve =
-  let antinodes =
-    CharSet.fold (fun c acc -> (IntSet.union (create_all_antinodes c) acc)) get_antennas IntSet.empty in
-  (* printf "\n\nAntinodes : \n"; *)
-  (* IntSet.iter (fun d -> printf "%d " d) antinodes; *)
-  IntSet.cardinal antinodes
+  let dm = expand input in
+  calculate_checksum (compact dm);
 ;;
 
 let () =
-  (* printf "anitnodes for A\n"; *)
-  (* IntSet.iter (fun p -> printf "%d " p) (create_antinodes 'A' 104); *)
   printf "Total: %d\n" solve;;
-
