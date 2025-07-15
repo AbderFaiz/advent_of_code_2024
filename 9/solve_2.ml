@@ -41,7 +41,7 @@ let expand dm =
 let reverse_list = List.rev;;
 
 let fill_empty_space file1 file2 gain_space =
-  let new_ept_space = if (gain_space) then file1.empty_space - file2.size + file2.empty_space
+  let new_ept_space = if (gain_space) then file1.empty_space - file2.size + file2.empty_space + file2.size
                       else file1.empty_space - file2.size
   in
   let n_file1 = {id = file1.id; size = file1.size; empty_space = 0; can_move=file1.can_move} in
