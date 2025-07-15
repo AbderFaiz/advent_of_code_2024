@@ -22,7 +22,7 @@ let expand dm =
   let rec aux i acc=
     if (i >= String.length dm) then
       acc
-    else (if (i == String.length dm -1)
+    else (if (i = String.length dm -1)
          then
            let file_id = (i/2) in
            let file_size = (int_of_char dm.[i] - int_of_char '0') in
@@ -40,15 +40,6 @@ let expand dm =
 
 let reverse_list = List.rev;;
 
-let fill_empty_space file1 file2 gain_space =
-  let new_ept_space = if (gain_space) then file1.empty_space - file2.size + file2.empty_space + file2.size
-                      else file1.empty_space - file2.size
-  in
-  let n_file1 = {id = file1.id; size = file1.size; empty_space = 0; can_move=file1.can_move} in
-  let n_file2 = {id = file2.id; size = file2.size; empty_space = new_ept_space; can_move = false} in
-  n_file1::[n_file2]
-;;
-
 let custom_findindex f l =
   let index = List.find_index f l in
   match index with
@@ -56,11 +47,19 @@ let custom_findindex f l =
   | Some i -> i
 ;;  
 
-let cant_move f =
-  {id=f.id; size=f.size; empty_space=f.empty_space; can_move=false};;
+let cant_move f = {f with can_move=false};;
+
+let fill_empty_space file1 file2 gain_space =
+  let new_ept_space = if (gain_space) then file1.empty_space - file2.size + file2.empty_space + file2.size
+                      else file1.empty_space - file2.size
+  in
+  let n_file1 = {file1 with empty_space=0} in
+  let n_file2 = (cant_move {file2 with empty_space=new_ept_space}) in
+  n_file1::[n_file2]
+;;
 
 let add_empty_space i1 i2 lst=
-  if (i1 == i2) then []
+  if (i1 = i2) then []
   else
     let imp_f = List.nth lst i1 in
     let mov_f = List.nth lst i2 in
@@ -79,21 +78,21 @@ let compact reversed_dm =
   let rec aux dm =
     (* printf "\n -------------- \n"; *)
     (* print_disk_map dm; *)
-    if (List.for_all (fun f -> f.can_move == false) dm) then dm
+    if (List.for_all (fun f -> f.can_move = false) dm) then dm
     else
       let reverse_dm = (reverse_list dm) in
-      let cur_file_to_move_index = (size_dm - (custom_findindex (fun f -> f.can_move == true) reverse_dm) - 1) in
+      let cur_file_to_move_index = (size_dm - (custom_findindex (fun f -> f.can_move = true) reverse_dm) - 1) in
       let cur_file_to_move = (List.nth dm cur_file_to_move_index) in
       let new_index = (custom_findindex (fun f -> f.empty_space >= cur_file_to_move.size) dm) in
       let new_dm =
-        (if (new_index == -1 || new_index >= cur_file_to_move_index) then
+        (if (new_index = -1 || new_index >= cur_file_to_move_index) then
           (List.take cur_file_to_move_index dm)@[(cant_move cur_file_to_move)]@(List.drop (cur_file_to_move_index + 1) dm)
         else
           let impacted_file = List.nth dm new_index in
           let is_impacted_file_space =
-            if (cur_file_to_move_index - new_index == 1) then cur_file_to_move_index else (cur_file_to_move_index - 1) in
+            if (cur_file_to_move_index - new_index = 1) then cur_file_to_move_index else (cur_file_to_move_index - 1) in
           (List.take new_index dm)@
-            (fill_empty_space impacted_file cur_file_to_move (cur_file_to_move_index == new_index + 1))@
+            (fill_empty_space impacted_file cur_file_to_move (cur_file_to_move_index = new_index + 1))@
               (sublist (new_index+1) (is_impacted_file_space) dm)@
                 (add_empty_space is_impacted_file_space cur_file_to_move_index dm)@
                   (List.drop (cur_file_to_move_index+1) dm)
@@ -108,7 +107,7 @@ let compact reversed_dm =
 
 let calculate_file_block_cs file_block id=
   let rec aux acc counter=
-    if (counter == file_block.size) then acc
+    if (counter = file_block.size) then acc
     else aux (file_block.id*(id+counter) + acc) (counter+1)
   in
   aux 0 0
